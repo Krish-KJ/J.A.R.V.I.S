@@ -1,15 +1,3 @@
-# JARVIS Command-line Assistant
-# This script listens for voice commands, sends them to the Gemini API,
-# and performs actions like opening websites.
-
-# Required Libraries:
-# You will need to install these libraries first. Open your terminal and run:
-# pip install SpeechRecognition
-# pip install PyAudio
-# pip install google-generativeai
-# pip install webbrowser
-# pip install python-dotenv
-
 import speech_recognition as sr
 import webbrowser
 import google.generativeai as genai
@@ -17,6 +5,7 @@ import os
 import sys
 import time
 import dotenv
+import pyttsx3 # <--- UPGRADE: Import the Text-to-Speech library
 
 # --- Configuration ---
 # Load environment variables from the .env file
@@ -32,20 +21,28 @@ except KeyError:
     print("Please set your API key as an environment variable before running this script.")
     sys.exit(1)
 
-# --- Speech Recognition Setup ---
+# --- Speech Recognition and TTS Setup ---
 r = sr.Recognizer()
+# <--- UPGRADE: Initialize the TTS engine
+engine = pyttsx3.init()
+# Optional: Adjust the voice, rate, or volume here
+# voices = engine.getProperty('voices')
+# engine.setProperty('voice', voices[0].id) # Change to a different voice if available
+# engine.setProperty('rate', 150) # Speed of speech
 
 # --- Functions ---
 
 def speak(text):
     """
-    A placeholder function for speaking the text aloud.
-    This functionality requires a separate text-to-speech (TTS) engine,
-    which is not included in this simple script for cross-platform compatibility.
-    On macOS, you can use `say` command. On Windows, you might use win32com.
-    For now, we'll just print the text.
+    UPGRADE: This function now uses a Text-to-Speech engine to speak the text aloud.
+    It still prints to the console as a fallback.
     """
     print(f"JARVIS: {text}")
+    try:
+        engine.say(text)
+        engine.runAndWait()
+    except Exception as e:
+        print(f"TTS Error: Could not speak the text. {e}")
 
 def listen():
     """Listens for a voice command and returns the transcribed text."""
@@ -69,9 +66,16 @@ def listen():
             return None
 
 def open_website(url):
-    """Opens a website in the default web browser."""
-    webbrowser.open_new_tab(url)
-    speak(f"Opening {url.split('//')[1].split('/')[0]} for you.")
+    """
+    UPGRADE: Added error handling to gracefully fail if the browser cannot be opened.
+    Opens a website in the default web browser.
+    """
+    try:
+        webbrowser.open_new_tab(url)
+        speak(f"Opening {url.split('//')[1].split('/')[0]} for you.")
+    except Exception as e:
+        speak("I'm sorry, I was unable to open the website.")
+        print(f"Error opening website: {e}")
 
 def process_command(command):
     """Processes the voice command."""
@@ -79,11 +83,11 @@ def process_command(command):
         return
 
     # Hardcoded commands for opening websites
-    if "open google" in command:
+    if "open google" in command or "go to google" in command:
         open_website("https://www.google.com")
-    elif "open youtube" in command:
+    elif "open youtube" in command or "go to youtube" in command:
         open_website("https://www.youtube.com")
-    elif "open wikipedia" in command:
+    elif "open wikipedia" in command or "go to wikipedia" in command:
         open_website("https://www.wikipedia.org")
     elif "open github" in command:
         open_website("https://www.github.com")
@@ -91,12 +95,6 @@ def process_command(command):
         open_website("https://www.facebook.com")
     elif "open twitter" in command:
         open_website("https://www.twitter.com")
-    elif "go to google" in command:
-        open_website("https://www.google.com")
-    elif "go to youtube" in command:
-        open_website("https://www.youtube.com")
-    elif "go to wikipedia" in command:
-        open_website("https://www.wikipedia.org")
     
     # Check for a specific keyword to exit the program
     elif "exit" in command or "stop" in command or "bye" in command:
